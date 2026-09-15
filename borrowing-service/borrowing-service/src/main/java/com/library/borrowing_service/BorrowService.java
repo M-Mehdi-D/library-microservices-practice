@@ -1,6 +1,8 @@
 package com.library.borrowing_service;
 
 import java.util.Date;
+import java.util.Optional;
+
 import com.library.borrowing_service.dto.BookDto;
 import com.library.borrowing_service.dto.MemberDto;
 import org.springframework.stereotype.Service;
@@ -20,7 +22,16 @@ public class BorrowService {
 
     // This method uses a circuit breaker named "borrowBreaker"
     @CircuitBreaker(name = "borrowBreaker", fallbackMethod = "borrowFallback")
-    public String borrowBook(int memberId, int bookId) {
+    public String borrowBook(int memberId, int bookId, String idempotencyKey) {
+        // Step A: if a key was provided and was seen before return the old result
+        if (idempotencyKey !=null) {
+             Optional<BorrowRecord> existing = borrowRepo.findByIdempotencyKey(idempotencyKey);
+             if (existing.isPresent()) {
+                 return "Already processed. Due date: " + existing.get().getDueDate();
+             }
+        }
+
+        // Step B: otherwise do the normal procedure
         // 1.Call Member Service to check if member exists
         MemberDto member = memberClient.getMember(memberId);
         if(member == null) return "Member not found.";
@@ -36,6 +47,7 @@ public class BorrowService {
         record.setMemberId(memberId);
         record.setBookId(bookId);
         record.setDueDate(new Date(System.currentTimeMillis() + sevenDaysInMilliSeconds));
+        record.setIdempotencyKey(idempotencyKey);
         borrowRepo.save(record);
 
         // 4. Tell book Service to mark it as unavailable
@@ -45,8 +57,8 @@ public class BorrowService {
         }
 
         // Fallback method if teh circuit breaker trips
-        public String borrowFallback(int memberId, int bookId, Throwable t) {
-        t.printStackTrace(); // TEMPORARY for debugging
+        public String borrowFallback(int memberId, int bookId, String idempotencyKey, Throwable t) {
+        t.printStackTrace(); // ****TEMPORARY for debugging
           return "Fallback: " + t.getClass().getSimpleName() + ": " + t.getMessage();
         //return "Service temporarily unavailable. Please try again later. (Circuit Breaker tripped)";
     }

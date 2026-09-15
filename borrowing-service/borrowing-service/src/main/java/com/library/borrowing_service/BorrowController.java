@@ -13,7 +13,9 @@ public class BorrowController {
     private BorrowService borrowService;
 
     @PostMapping
-    public String borrowBook(@RequestParam int memberId, @RequestParam int bookId) {
-        return borrowService.borrowBook(memberId, bookId);
+    public String borrowBook(@RequestParam int memberId,
+                             @RequestParam int bookId,
+                             @RequestHeader(value = "idempotency-key", required = false) String idempotencyKey) {
+        return borrowService.borrowBook(memberId, bookId, idempotencyKey);
     }
 }
