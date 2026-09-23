@@ -1,0 +1,67 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: a
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pa"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  discovery-server:
+    build: ./discovery-server/discovery-server
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+
+  member-service:
+    build: ./member-service/member-service
+    container_name: member-service
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/member_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      EUREKA_URL: http://discovery-server:8761/eureka
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+
+  book-service:
+    build: ./book-service/book-service
+    container_name: book-service
+    ports:
+      - "8082:8082"
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/book_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      EUREKA_URL: http://discovery-server:8761/eureka
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+
+  borrowing-service:
+    build: ./borrowing-service/borrowing-service
+    container_name: borrowing-service
+    ports:
+      - "8083:8083"
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/borrow_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      EUREKA_URL: http://discovery-server:8761/eureka
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-server:
+        condition: service_started
+
+volumes:
+  mysql-data:
