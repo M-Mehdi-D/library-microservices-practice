@@ -3,7 +3,7 @@ services:
     image: mysql:8.0
     container_name: mysql
     environment:
-      MYSQL_ROOT_PASSWORD: a
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - "3307:3306"
     volumes:
@@ -27,6 +27,7 @@ services:
     ports:
       - "8081:8081"
     environment:
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       DB_URL: jdbc:mysql://mysql:3306/member_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       EUREKA_URL: http://discovery-server:8761/eureka
     depends_on:
@@ -41,6 +42,7 @@ services:
     ports:
       - "8082:8082"
     environment:
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       DB_URL: jdbc:mysql://mysql:3306/book_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       EUREKA_URL: http://discovery-server:8761/eureka
     depends_on:
@@ -55,6 +57,7 @@ services:
     ports:
       - "8083:8083"
     environment:
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       DB_URL: jdbc:mysql://mysql:3306/borrow_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       EUREKA_URL: http://discovery-server:8761/eureka
     depends_on:
